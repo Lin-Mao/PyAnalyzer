@@ -54,7 +54,7 @@ setup(
     version='0.0.1',
     author='Mao Lin',
     description='Python code analyzer',
-    license='BSD',
+    license='MIT',
     ext_modules=[CMakeExtension('.')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
