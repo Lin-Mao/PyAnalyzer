@@ -21,3 +21,5 @@ pybind11_add_module(pyanalyzer ${PYANALYZER_SOURCE})
 target_include_directories(pyanalyzer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
                             ${Python_INCLUDE_DIRS})
 target_link_libraries(pyanalyzer PRIVATE ${Python_LIBRARIES})
+
+install(TARGETS pyanalyzer DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/bin)
