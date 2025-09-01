@@ -40,55 +40,37 @@ std::vector<PythonFrame_t>& PyFrameChecker::get_frames(bool cached) {
         (PyFrameObject*)Py_XNewRef(PyThreadState_GetFrame(tstate));  // may be NULL
 
     while (frame) {
-        // Current executing line
-        int lineno = PyFrame_GetLineNumber(frame);
+        size_t lineno = (size_t)PyFrame_GetLineNumber(frame);
 
-        // Get code object (new ref)
-        PyCodeObject* code = PyFrame_GetCode(frame);
-
-        // Defaults
-        long firstlineno = 0;
-        std::string file_name, func_name;
-
-        if (code) {
-            // co_firstlineno (int)
-            PyObject* first_obj =
-                PyObject_GetAttrString((PyObject*)code, "co_firstlineno");
-            if (first_obj) {
-                long v = PyLong_AsLong(first_obj);
-                if (!PyErr_Occurred() && v >= 0) firstlineno = v;
-                Py_DECREF(first_obj);
+        #if PY_VERSION_HEX >= 0x030B0000
+            // PyFrameObject is opaque in 3.11+, use accessors
+            PyCodeObject* code = PyFrame_GetCode(frame);  // new ref (3.11+)
+            size_t func_first_lineno = 0;
+            std::string file_name, func_name;
+            if (code) {
+                PyObject* co_filename = PyObject_GetAttrString((PyObject*)code, "co_filename");
+                PyObject* co_name = PyObject_GetAttrString((PyObject*)code, "co_name");
+                PyObject* co_firstlineno = PyObject_GetAttrString((PyObject*)code, "co_firstlineno");
+                file_name = co_filename ? unpack_pyobject(co_filename) : "";
+                func_name = co_name ? unpack_pyobject(co_name) : "";
+                if (co_firstlineno && PyLong_Check(co_firstlineno)) {
+                    func_first_lineno = (size_t)PyLong_AsUnsignedLong(co_firstlineno);
+                }
+                Py_XDECREF(co_filename);
+                Py_XDECREF(co_name);
+                Py_XDECREF(co_firstlineno);
+                Py_DECREF(code);
             }
-
-            // co_filename (str) and co_name (str)
-            PyObject* filename_obj =
-                PyObject_GetAttrString((PyObject*)code, "co_filename");
-            PyObject* name_obj =
-                PyObject_GetAttrString((PyObject*)code, "co_name");
-
-            if (filename_obj) {
-                file_name = unpack_pyobject(filename_obj);  // your helper
-                Py_DECREF(filename_obj);
-            }
-            if (name_obj) {
-                func_name = unpack_pyobject(name_obj);      // your helper
-                Py_DECREF(name_obj);
-            }
-
-            Py_DECREF(code);
-        }
-
-        _frames.emplace_back(PythonFrame_t{
-            file_name,
-            func_name,
-            static_cast<size_t>(firstlineno),
-            static_cast<size_t>(lineno >= 0 ? lineno : 0)
-        });
-
-        // Walk to caller (own next before dropping current)
-        PyFrameObject* next = (PyFrameObject*)Py_XNewRef(PyFrame_GetBack(frame));
-        Py_DECREF(frame);
-        frame = next;
+            _frames.emplace_back(PythonFrame_t{file_name, func_name, func_first_lineno, lineno});
+            frame = PyFrame_GetBack(frame);  // borrowed; do not DECREF
+        #else
+            // ≤3.10: direct field access still allowed
+            size_t func_first_lineno = (size_t)frame->f_code->co_firstlineno;
+            std::string file_name = unpack_pyobject(frame->f_code->co_filename);
+            std::string func_name = unpack_pyobject(frame->f_code->co_name);
+            _frames.emplace_back(PythonFrame_t{file_name, func_name, func_first_lineno, lineno});
+            frame = frame->f_back;
+        #endif
     }
 
     return _frames;
