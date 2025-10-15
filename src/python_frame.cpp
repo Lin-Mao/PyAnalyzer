@@ -1,6 +1,12 @@
 #include "python_frame.h"
 #include <frameobject.h>  // PyFrame_* / PyCode_* APIs
 
+// Backport for < 3.10
+#if PY_VERSION_HEX < 0x030A0000
+static inline PyObject* Py_NewRef(PyObject* obj) { Py_INCREF(obj); return obj; }
+static inline PyObject* Py_XNewRef(PyObject* obj) { Py_XINCREF(obj); return obj; }
+#endif
+
 
 PyFrameChecker& PyFrameChecker::instance() {
     static PyFrameChecker monitor;
@@ -37,7 +43,7 @@ std::vector<PythonFrame_t>& PyFrameChecker::get_frames(bool cached) {
     // Own a reference to the current frame
     PyThreadState* tstate = PyThreadState_Get();
     PyFrameObject* frame =
-        (PyFrameObject*)Py_XNewRef(PyThreadState_GetFrame(tstate));  // may be NULL
+        (PyFrameObject*)Py_XNewRef((PyObject*)PyThreadState_GetFrame(tstate));  // may be NULL
 
     while (frame) {
         size_t lineno = (size_t)PyFrame_GetLineNumber(frame);
