@@ -1,12 +1,12 @@
 #include "python_frame.h"
 
-PythonFrameMonitor& PythonFrameMonitor::instance() {
-    static PythonFrameMonitor monitor;
+PyFrameChecker& PyFrameChecker::instance() {
+    static PyFrameChecker monitor;
     return monitor;
 }
 
 // Take from PyTorch::THPUtils_unpackStringView
-std::string PythonFrameMonitor::unpack_pyobject(PyObject* obj) {
+std::string PyFrameChecker::unpack_pyobject(PyObject* obj) {
     if (PyBytes_Check(obj)) {
         size_t size = PyBytes_GET_SIZE(obj);
         return std::string(PyBytes_AS_STRING(obj), size);
@@ -26,7 +26,7 @@ std::string PythonFrameMonitor::unpack_pyobject(PyObject* obj) {
     return "";
 }
 
-std::vector<PythonFrame>& PythonFrameMonitor::get_frames(bool cached) {
+std::vector<PythonFrame_t>& PyFrameChecker::get_frames(bool cached) {
     if (cached) {
         return _frames;
     }
@@ -39,36 +39,18 @@ std::vector<PythonFrame>& PythonFrameMonitor::get_frames(bool cached) {
 
     while (nullptr != frame) {
         size_t lineno = PyFrame_GetLineNumber(frame);
-        size_t co_firstlineno = frame->f_code->co_firstlineno;
+        size_t func_first_lineno = frame->f_code->co_firstlineno;
         std::string file_name = unpack_pyobject(frame->f_code->co_filename);
-        std::string function_name = unpack_pyobject(frame->f_code->co_name);
-        _frames.emplace_back(PythonFrame{file_name, function_name, co_firstlineno, lineno});
+        std::string func_name = unpack_pyobject(frame->f_code->co_name);
+        _frames.emplace_back(PythonFrame_t{file_name, func_name, func_first_lineno, lineno});
         frame = frame->f_back;
     }
     return _frames;
 }
 
-bool python_frame_get(size_t max_num_frames, python_frame_t *frames, size_t *num_frames) {
+bool get_python_frame(std::vector<PythonFrame_t> &frames) {
+    auto &frame_checker = PyFrameChecker::instance();
+    frames = frame_checker.get_frames();    
 
-    bool status = true;
-
-    auto &python_frame_monitor = PythonFrameMonitor::instance();
-
-    auto &python_frames = python_frame_monitor.get_frames();
-
-    if (python_frames.empty()) {
-        status = false;
-    } else {
-        status = true;
-
-        *num_frames = std::min(python_frames.size(), max_num_frames);
-        for (size_t i = 0; i < *num_frames; ++i) {
-            frames[i].file_name = python_frames[i].file_name.c_str();
-            frames[i].function_name = python_frames[i].function_name.c_str();
-            frames[i].function_first_lineno = python_frames[i].function_first_lineno;
-            frames[i].lineno = python_frames[i].lineno;
-        }
-    }
-
-  return status;
+    return frames.size() > 0;
 }

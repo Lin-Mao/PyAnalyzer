@@ -7,45 +7,38 @@
 #include <string>
 #include <vector>
 
-typedef struct python_frame {
-    const char *file_name;
-    const char *function_name;
-    size_t function_first_lineno;
-    size_t lineno;
-}python_frame_t;
-
-struct PythonFrame {
+typedef struct PythonFrame {
     std::string file_name;
-    std::string function_name;
-    size_t function_first_lineno;
+    std::string func_name;
+    size_t func_first_lineno;
     size_t lineno;
 
-    PythonFrame(const std::string &file_name, const std::string &function_name,
-                size_t function_first_lineno, size_t lineno)
+    PythonFrame(const std::string &file_name, const std::string &func_name,
+                size_t func_first_lineno, size_t lineno)
             : file_name(file_name),
-            function_name(function_name),
-            function_first_lineno(function_first_lineno),
+            func_name(func_name),
+            func_first_lineno(func_first_lineno),
             lineno(lineno) {}
-};
+}PythonFrame_t;
 
-class PythonFrameMonitor {
+class PyFrameChecker {
 public:
     // Return the current python frames with a query or using the previous cached frames
-    std::vector<PythonFrame> &get_frames(bool cached = false);
+    std::vector<PythonFrame_t> &get_frames(bool cached = false);
 
     // Get the singleton instance
-    static PythonFrameMonitor &instance();
+    static PyFrameChecker &instance();
 
 private:
-    PythonFrameMonitor() {}
+    PyFrameChecker() {}
 
     std::string unpack_pyobject(PyObject *obj);
 
 private:
     // Cached frames for each thread
-    static inline thread_local std::vector<PythonFrame> _frames;
+    static inline thread_local std::vector<PythonFrame_t> _frames;
 };
 
-bool python_frame_get(size_t max_num_frames, python_frame_t *frames, size_t *num_frames);
+bool get_python_frame(std::vector<PythonFrame_t> &frames);
 
 #endif  // PYTHON_FRAME_H
