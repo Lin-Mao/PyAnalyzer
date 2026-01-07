@@ -1,4 +1,6 @@
 #include "python_frame.h"
+#include <frameobject.h>  // PyFrame_* / PyCode_* APIs
+
 
 PyFrameChecker& PyFrameChecker::instance() {
     static PyFrameChecker monitor;
@@ -27,26 +29,71 @@ std::string PyFrameChecker::unpack_pyobject(PyObject* obj) {
 }
 
 std::vector<PythonFrame_t>& PyFrameChecker::get_frames(bool cached) {
-    if (cached) {
-        return _frames;
-    }
+    if (cached) return _frames;
 
-    // GIL lock is required
-    pybind11::gil_scoped_acquire gil;
-
-    PyFrameObject* frame = PyEval_GetFrame();
+    pybind11::gil_scoped_acquire gil;  // you already noted GIL is required
     _frames.clear();
 
-    while (nullptr != frame) {
-        size_t lineno = PyFrame_GetLineNumber(frame);
-        size_t func_first_lineno = frame->f_code->co_firstlineno;
-        std::string file_name = unpack_pyobject(frame->f_code->co_filename);
-        std::string func_name = unpack_pyobject(frame->f_code->co_name);
-        _frames.emplace_back(PythonFrame_t{file_name, func_name, func_first_lineno, lineno});
-        frame = frame->f_back;
+    // Own a reference to the current frame
+    PyThreadState* tstate = PyThreadState_Get();
+    PyFrameObject* frame =
+        (PyFrameObject*)Py_XNewRef(PyThreadState_GetFrame(tstate));  // may be NULL
+
+    while (frame) {
+        // Current executing line
+        int lineno = PyFrame_GetLineNumber(frame);
+
+        // Get code object (new ref)
+        PyCodeObject* code = PyFrame_GetCode(frame);
+
+        // Defaults
+        long firstlineno = 0;
+        std::string file_name, func_name;
+
+        if (code) {
+            // co_firstlineno (int)
+            PyObject* first_obj =
+                PyObject_GetAttrString((PyObject*)code, "co_firstlineno");
+            if (first_obj) {
+                long v = PyLong_AsLong(first_obj);
+                if (!PyErr_Occurred() && v >= 0) firstlineno = v;
+                Py_DECREF(first_obj);
+            }
+
+            // co_filename (str) and co_name (str)
+            PyObject* filename_obj =
+                PyObject_GetAttrString((PyObject*)code, "co_filename");
+            PyObject* name_obj =
+                PyObject_GetAttrString((PyObject*)code, "co_name");
+
+            if (filename_obj) {
+                file_name = unpack_pyobject(filename_obj);  // your helper
+                Py_DECREF(filename_obj);
+            }
+            if (name_obj) {
+                func_name = unpack_pyobject(name_obj);      // your helper
+                Py_DECREF(name_obj);
+            }
+
+            Py_DECREF(code);
+        }
+
+        _frames.emplace_back(PythonFrame_t{
+            file_name,
+            func_name,
+            static_cast<size_t>(firstlineno),
+            static_cast<size_t>(lineno >= 0 ? lineno : 0)
+        });
+
+        // Walk to caller (own next before dropping current)
+        PyFrameObject* next = (PyFrameObject*)Py_XNewRef(PyFrame_GetBack(frame));
+        Py_DECREF(frame);
+        frame = next;
     }
+
     return _frames;
 }
+
 
 bool get_python_frame(std::vector<PythonFrame_t> &frames) {
     auto &frame_checker = PyFrameChecker::instance();
