@@ -44,6 +44,7 @@ void unique_show() {
         unique_frames.insert(ss.str());
         std::cout << "=============== Unique Python Frame Index: " << count++ << " ===============\n";
         std::cout << ss.str() << std::endl;
+        std::cout << std::flush;
     }
 }
 
@@ -67,6 +68,7 @@ void show(int max_count) {
            << std::endl;
     }
     std::cout << ss.str() << std::endl;
+    std::cout << std::flush;
 }
 
 
@@ -85,6 +87,7 @@ void show(const std::string& str) {
            << std::endl;
     }
     std::cout << ss.str() << std::endl;
+    std::cout << std::flush;
 }
 
 
