@@ -2,9 +2,10 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <set>
 
 static int count = 0;
-
+static std::set<std::string> unique_frames;
 
 std::string get_frames() {
     std::vector<PythonFrame_t> python_frames;
@@ -23,6 +24,27 @@ std::string get_frames() {
     }
     // std::cout << ss.str() << std::endl;
     return ss.str();
+}
+
+void unique_show() {
+    std::vector<PythonFrame_t> python_frames;
+    get_python_frame(python_frames);
+
+    std::cout << std::flush;
+    std::stringstream ss;
+    ss << "=============== Unique Python Frame Index: " << count++ << " ===============\n";
+    for (size_t i = 0; i < python_frames.size(); i++) {
+        ss << "f-" << std::to_string(i) << " "
+           << std::string(python_frames[i].file_name) << ":"
+           << std::to_string(python_frames[i].lineno) << "  def "
+           << std::string(python_frames[i].func_name) << "() "
+           << std::endl;
+    }
+    // std::cout << ss.str() << std::endl;
+    if (unique_frames.find(ss.str()) == unique_frames.end()) {
+        unique_frames.insert(ss.str());
+        std::cout << ss.str() << std::endl;
+    }
 }
 
 
@@ -80,4 +102,7 @@ PYBIND11_MODULE(pyanalyzer, m) {
           pybind11::overload_cast<const std::string&>(&show),
           "A function which shows the current python frames",
           pybind11::arg("str"));
+
+    m.def("unique_show", &unique_show,
+          "A function which shows the current python frames without duplicates");
 }
