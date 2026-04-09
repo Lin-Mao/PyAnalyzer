@@ -32,7 +32,6 @@ void unique_show() {
 
     std::cout << std::flush;
     std::stringstream ss;
-    ss << "=============== Unique Python Frame Index: " << count++ << " ===============\n";
     for (size_t i = 0; i < python_frames.size(); i++) {
         ss << "f-" << std::to_string(i) << " "
            << std::string(python_frames[i].file_name) << ":"
@@ -43,6 +42,7 @@ void unique_show() {
     // std::cout << ss.str() << std::endl;
     if (unique_frames.find(ss.str()) == unique_frames.end()) {
         unique_frames.insert(ss.str());
+        std::cout << "=============== Unique Python Frame Index: " << count++ << " ===============\n";
         std::cout << ss.str() << std::endl;
     }
 }
