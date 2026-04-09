@@ -1,5 +1,5 @@
-#ifndef PYTHON_FRAME_H
-#define PYTHON_FRAME_H
+#ifndef PYFRAME_H
+#define PYFRAME_H
 
 #include <Python.h>
 #include <pybind11/pybind11.h>
@@ -41,4 +41,4 @@ private:
 
 bool get_python_frame(std::vector<PythonFrame_t> &frames);
 
-#endif  // PYTHON_FRAME_H
+#endif  // PYFRAME_H

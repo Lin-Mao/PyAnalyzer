@@ -1,4 +1,4 @@
-#include "python_frame.h"
+#include "pyframe.h"
 #include <frameobject.h>  // PyFrame_* / PyCode_* APIs
 
 // Backport for < 3.10

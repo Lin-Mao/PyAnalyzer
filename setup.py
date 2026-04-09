@@ -50,7 +50,7 @@ class CMakeBuild(build_ext):
         os.chdir(str(cwd))
 
 setup(
-    name='pyanalyzer',
+    name='pyspy',
     version='0.0.1',
     author='Mao Lin',
     description='Python code analyzer',

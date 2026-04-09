@@ -1,4 +1,4 @@
-#include "python_frame.h"
+#include "pyframe.h"
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -12,7 +12,7 @@ std::string get_frames() {
     get_python_frame(python_frames);
 
     std::stringstream ss;
-    ss << "PyAnalyzer Frame Index: " << count++ << std::endl;
+    ss << "PySpy Frame Index: " << count++ << std::endl;
     for (size_t i = 0; i < python_frames.size(); i++) {
         ss << "f-" << std::to_string(i) << " "
            << std::string(python_frames[i].file_name) << ":"
@@ -42,7 +42,7 @@ void unique_show() {
     // std::cout << ss.str() << std::endl;
     if (unique_frames.find(ss.str()) == unique_frames.end()) {
         unique_frames.insert(ss.str());
-        std::cout << "=============== Unique Python Frame Index: " << count++ << " ===============\n";
+        std::cout << "=============== Unique PySpy Frame Index: " << count++ << " ===============\n";
         std::cout << ss.str() << std::endl;
         std::cout << std::flush;
     }
@@ -59,7 +59,7 @@ void show(int max_count) {
 
     std::cout << std::flush;
     std::stringstream ss;
-    ss << "=============== Python Frame Index: " << count++ << " ===============\n";
+    ss << "=============== PySpy Frame Index: " << count++ << " ===============\n";
     for (size_t i = 0; i < python_frames.size(); i++) {
         ss << "f-" << std::to_string(i) << " "
            << std::string(python_frames[i].file_name) << ":"
@@ -91,7 +91,7 @@ void show(const std::string& str) {
 }
 
 
-PYBIND11_MODULE(pyanalyzer, m) {
+PYBIND11_MODULE(pyspy, m) {
     m.doc() = "A tool for python code reviewing!"; // optional module docstring
 
     m.def("get_frames", &get_frames, "A function which returns the current python frames");

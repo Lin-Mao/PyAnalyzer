@@ -1,6 +1,10 @@
 build/
 bin/
 dist/
-pyanalyzer.egg-info/
+pyspy.egg-info/
+*.so
 
-.vscode/
+.vscode
+.cursor
+.claude
+.codex
