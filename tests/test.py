@@ -1,9 +1,9 @@
-import pyanalyzer
+import pyspy
 
 def c():
     print("c is called")
     print()
-    print(pyanalyzer.get_frames())
+    print(pyspy.get_frames())
     
 def b():
     print("b is called")

@@ -3,5 +3,5 @@ all:
 	pip install .
 
 clean:
-	rm -rf build dist pyanalyzer.egg-info
-	pip uninstall pyanalyzer -y
+	rm -rf build dist pyspy.egg-info
+	pip uninstall pyspy -y
